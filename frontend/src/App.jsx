@@ -3,6 +3,7 @@ import './App.css'
 import shipsureLogo from './assets/shipsure-logo.png'
 
 const navItems = ['Overview', 'Orders', 'Routes', 'Drivers', 'POD Archive', 'Reports']
+const API_BASE_URL = 'http://localhost:8080/api'
 
 const mockDashboard = {
   kpis: [
@@ -15,8 +16,8 @@ const mockDashboard = {
   {
     id: 'DO-78342',
     customer: 'Atlas Foods',
-    route: 'BKK-NE-04',
-    driver: 'Narin C.',
+    route: 'PNH-N-04',
+    driver: 'Dara C.',
     eta: '13:40',
     pod: 'Signed',
     status: 'Delivered',
@@ -24,8 +25,8 @@ const mockDashboard = {
   {
     id: 'DO-78343',
     customer: 'Mira Retail',
-    route: 'BKK-C-11',
-    driver: 'May S.',
+    route: 'PNH-C-11',
+    driver: 'Sophea S.',
     eta: '14:10',
     pod: 'Photo pending',
     status: 'In transit',
@@ -33,8 +34,8 @@ const mockDashboard = {
   {
     id: 'DO-78344',
     customer: 'Northline Pharma',
-    route: 'BKK-W-02',
-    driver: 'Arthit P.',
+    route: 'PNH-W-02',
+    driver: 'Vannak P.',
     eta: '14:25',
     pod: 'Temperature logged',
     status: 'At stop',
@@ -42,8 +43,8 @@ const mockDashboard = {
   {
     id: 'DO-78345',
     customer: 'Kumo Market',
-    route: 'BKK-S-09',
-    driver: 'Dao T.',
+    route: 'PNH-S-09',
+    driver: 'Srey T.',
     eta: '15:05',
     pod: 'Damaged item',
     status: 'Exception',
@@ -51,8 +52,8 @@ const mockDashboard = {
   {
     id: 'DO-78346',
     customer: 'Harbor Office',
-    route: 'BKK-E-07',
-    driver: 'Pim R.',
+    route: 'PNH-E-07',
+    driver: 'Rotha R.',
     eta: '15:30',
     pod: 'Awaiting signature',
     status: 'In transit',
@@ -61,9 +62,9 @@ const mockDashboard = {
   selectedOrder: {
   id: 'DO-78342',
   customer: 'Atlas Foods',
-  address: '88 Rama IV Rd, Khlong Toei, Bangkok',
-  receiver: 'S. Wattanapong',
-  signedAt: '13:32 ICT',
+  address: '88 Monivong Blvd, Boeung Keng Kang, Phnom Penh',
+  receiver: 'S. Sokha',
+  signedAt: '13:32 Cambodia time',
   packages: '18 cartons',
   condition: 'Accepted in full',
   timeline: [
@@ -85,11 +86,12 @@ const statusStyles = {
 function App() {
   const [dashboard, setDashboard] = useState(mockDashboard)
   const [apiState, setApiState] = useState('Loading API')
+  const [podState, setPodState] = useState('Ready')
 
   useEffect(() => {
     const controller = new AbortController()
 
-    fetch('http://localhost:8080/api/dashboard', { signal: controller.signal })
+    fetch(`${API_BASE_URL}/dashboard`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) {
           throw new Error('Dashboard API request failed')
@@ -112,6 +114,49 @@ function App() {
   }, [])
 
   const { kpis, orders, selectedOrder } = dashboard
+
+  function buildFallbackPod(order) {
+    return {
+      id: order.id,
+      customer: order.customer,
+      address: 'Mock delivery address, Phnom Penh',
+      receiver: order.status === 'Delivered' ? 'S. Sokha' : 'Pending receiver',
+      signedAt: order.status === 'Delivered' ? '13:32 Cambodia time' : order.status,
+      packages: order.id === 'DO-78344' ? '6 cold-chain boxes' : '12 parcels',
+      condition: order.pod,
+      timeline: [
+        { time: '09:10', title: 'Loaded at depot', detail: `${order.route} assigned to ${order.driver}` },
+        { time: order.eta, title: order.status, detail: order.pod },
+      ],
+    }
+  }
+
+  function handleSelectOrder(order) {
+    if (order.id === selectedOrder.id) {
+      return
+    }
+
+    setPodState('Loading POD')
+
+    fetch(`${API_BASE_URL}/orders/${order.id}/pod`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('POD detail request failed')
+        }
+
+        return response.json()
+      })
+      .then((podDetail) => {
+        setDashboard((current) => ({ ...current, selectedOrder: podDetail }))
+        setApiState('Spring Boot API')
+        setPodState('Ready')
+      })
+      .catch(() => {
+        setDashboard((current) => ({ ...current, selectedOrder: buildFallbackPod(order) }))
+        setApiState('Local mock data')
+        setPodState('POD loaded from fallback')
+      })
+  }
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
@@ -177,7 +222,9 @@ function App() {
               <h2 className="mt-1 text-3xl font-medium tracking-normal text-slate-950">
                 Proof of delivery dashboard
               </h2>
-              <p className="mt-2 text-sm text-slate-500">Data source: {apiState}</p>
+              <p className="mt-2 text-sm text-slate-500">
+                Data source: {apiState} - {podState}
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
@@ -206,7 +253,7 @@ function App() {
               <div className="flex flex-col gap-3 border-b border-slate-200 p-5 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-slate-950">Delivery orders</h3>
-                  <p className="mt-1 text-sm text-slate-500">Today, Bangkok metro routes</p>
+                  <p className="mt-1 text-sm text-slate-500">Today, Phnom Penh metro routes</p>
                 </div>
                 <div className="flex gap-2">
                   <button className="rounded-md border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700">
@@ -232,7 +279,23 @@ function App() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm">
                     {orders.map((order) => (
-                      <tr className={order.id === selectedOrder.id ? 'bg-cyan-50/60' : 'hover:bg-slate-50'} key={order.id}>
+                      <tr
+                        aria-selected={order.id === selectedOrder.id}
+                        className={`cursor-pointer transition ${
+                          order.id === selectedOrder.id
+                            ? 'bg-cyan-50/80 ring-1 ring-inset ring-cyan-200'
+                            : 'hover:bg-slate-50'
+                        }`}
+                        key={order.id}
+                        onClick={() => handleSelectOrder(order)}
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            handleSelectOrder(order)
+                          }
+                        }}
+                      >
                         <td className="px-5 py-4 font-medium text-slate-950">{order.id}</td>
                         <td className="px-5 py-4 text-slate-700">{order.customer}</td>
                         <td className="px-5 py-4 text-slate-600">{order.route}</td>
@@ -283,7 +346,7 @@ function App() {
                         <span className="font-medium text-slate-950">{selectedOrder.packages}</span>
                       </div>
                       <div className="h-12 rounded border border-dashed border-slate-300 bg-white px-3 py-2 font-serif text-2xl italic text-slate-700">
-                        S. Wattanapong
+                        {selectedOrder.receiver}
                       </div>
                     </div>
                   </div>
