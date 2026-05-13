@@ -1,4 +1,7 @@
+// DashboardCard is a functional React component.
+// Components are reusable pieces of UI that you can import and use anywhere.
 const DashboardCard = () => {
+  // It returns JSX, which looks like HTML but works inside JavaScript.
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="rounded-[32px] border border-slate-200/10 bg-slate-950/95 p-6 shadow-[0_35px_120px_-30px_rgba(15,23,42,0.8)] ring-1 ring-slate-700/40 backdrop-blur-xl sm:p-8">

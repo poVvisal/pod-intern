@@ -1,8 +1,12 @@
+// Import useState hook from React to add state to function components
 import { useState } from 'react'
 
 const SchoolLanding = () => {
+  // useState returns an array with 2 elements: the current state value, and a function to update it.
+  // Here we track whether the mobile menu is open or not. Default is 'false'.
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // React components must return a single parent element (or a fragment).
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       {/* Navigation */}
